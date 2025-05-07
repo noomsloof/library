@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { filter } from 'rxjs';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -16,9 +17,14 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @Get('search')
-  searchRole(@Query('role') role: string){
+  @Get('searchRole')
+  searchRole(@Query('role') role: string) {
     return this.usersService.searchByRole(role);
+  }
+
+  @Get('searchUsers')
+  searchUsers(@Query('query') query: string) {
+    return this.usersService.searchUsers(query);
   }
 
   @Get(':id')
