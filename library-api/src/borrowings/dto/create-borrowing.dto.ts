@@ -1,13 +1,13 @@
 import { IsNotEmpty, IsString } from "class-validator";
-import { firestore } from 'firebase-admin';
+import { DocumentReference } from 'firebase-admin/firestore';
 
 export class CreateBorrowingDto {
 
     @IsNotEmpty()
-    userRef: firestore.DocumentReference;
+    userRef: DocumentReference;
 
     @IsNotEmpty()
-    bookRef: firestore.DocumentReference;
+    bookRef: DocumentReference;
 
     @IsString()
     borrow_date: Date;

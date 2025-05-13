@@ -19,17 +19,17 @@ export class BorrowingsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.borrowingsService.findOne(+id);
+  findOne(@Param('id') id: string): Promise<Borrowing> {
+    return this.borrowingsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBorrowingDto: UpdateBorrowingDto) {
-    return this.borrowingsService.update(+id, updateBorrowingDto);
+  update(@Param('id') id: string, @Body() updateBorrowingDto: UpdateBorrowingDto): Promise<Borrowing> {
+    return this.borrowingsService.update(id, updateBorrowingDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.borrowingsService.remove(+id);
+    return this.borrowingsService.remove(id);
   }
 }
