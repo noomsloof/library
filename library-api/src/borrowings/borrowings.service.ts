@@ -3,6 +3,7 @@ import { CreateBorrowingDto } from './dto/create-borrowing.dto';
 import { UpdateBorrowingDto } from './dto/update-borrowing.dto';
 import { db } from '../firebase';
 import { Borrowing } from './interfaces/borrowing.interface';
+import { database } from 'firebase-admin';
 
 @Injectable()
 export class BorrowingsService {
@@ -68,7 +69,7 @@ export class BorrowingsService {
     const doc = await this.borrowingsCollection.doc(id);
     const docSnap = await doc.get();
 
-    if(!docSnap.exists) {
+    if (!docSnap.exists) {
       throw new NotFoundException('borrowing not found');
     }
 
@@ -84,13 +85,13 @@ export class BorrowingsService {
       throw new NotFoundException('borrowing not found');
     }
     await doc.delete();
-    return {message: 'book deleted successfully'};
+    return { message: 'book deleted successfully' };
   }
 
-  async searchBorrowing(query: string): Promise<Borrowing[] | null> {
+  async searchBorrowing(query: string): Promise<Borrowing[]> {
     const snapshot = await this.borrowingsCollection.get();
 
-    if (!snapshot.exists) {
+    if (snapshot.empty) {
       throw new NotFoundException('borrowing not found');
     }
 
@@ -103,19 +104,62 @@ export class BorrowingsService {
       const userData = userSnap.exists ? { id: userSnap.id, ...userSnap.data() } : null;
       const bookData = bookSnap.exists ? { id: bookSnap.id, ...bookSnap.data() } : null;
 
-      const macthuser = userData && (userData.name.toLowerCase().includes(query.toLowerCase()) || userData.email.toLowerCase().includes(query.toLowerCase()));
-      const macthbook = bookData && (bookData.title.toLowerCase().includes(query.toLowerCase()) || bookData.author.toLowerCase().includes(query.toLowerCase()));
+      const matchUser = userData && (
+        userData.name.toLowerCase().includes(query.toLowerCase()) ||
+        userData.email.toLowerCase().includes(query.toLowerCase())
+      );
 
-      if (!macthuser || macthbook) {
+      const matchBook = bookData && (
+        bookData.title.toLowerCase().includes(query.toLowerCase()) ||
+        bookData.author.toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (matchUser || matchBook) {
         return {
           id: doc.id, ...data,
           user: userData,
           book: bookData,
         };
       }
+
       return null;
     }));
 
-    return borrowings;
+    return borrowings.filter(borrowing => borrowing !== null) as Borrowing[];
+  }
+
+  async returnBook(id: string, updateBorrowingDto: UpdateBorrowingDto): Promise<Borrowing> {
+    const doc = this.borrowingsCollection.doc(id);
+    const docSnap = await doc.get();
+
+    if (!docSnap.exists) {
+      throw new NotFoundException('borrowing not found');
+    }
+
+    const data = docSnap.data();
+
+    const bookRef = this.booksCollection.doc(data.bookRef);
+    const bookSnap = await bookRef.get();
+
+    if (!bookSnap.exists) {
+      throw new NotFoundException('book not found');
+    }
+
+    const bookData = bookSnap.data();
+
+    await bookRef.update({ available_copies: bookData.available_copies + 1 });
+
+    const dueDate = new Date(data.dueDate);
+    const returnDate = new Date(updateBorrowingDto.return_date || Date.now());
+
+    if (returnDate.getTime() > dueDate.getTime()) {
+      updateBorrowingDto.status = 'late';
+    } else {
+      updateBorrowingDto.status = 'returned';
+    }
+
+    await doc.update(updateBorrowingDto);
+    const updateDoc = await doc.get();
+    return { id: updateDoc.id, ...updateDoc.data() } as Borrowing;
   }
 }

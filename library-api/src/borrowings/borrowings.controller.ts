@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { BorrowingsService } from './borrowings.service';
 import { CreateBorrowingDto } from './dto/create-borrowing.dto';
 import { UpdateBorrowingDto } from './dto/update-borrowing.dto';
@@ -6,11 +6,16 @@ import { Borrowing } from './interfaces/borrowing.interface';
 
 @Controller('borrowings')
 export class BorrowingsController {
-  constructor(private readonly borrowingsService: BorrowingsService) {}
+  constructor(private readonly borrowingsService: BorrowingsService) { }
 
   @Post()
   create(@Body() createBorrowingDto: CreateBorrowingDto): Promise<Borrowing> {
     return this.borrowingsService.create(createBorrowingDto);
+  }
+
+  @Get('search')
+  searchBorrowing(@Query('query') query: string): Promise<Borrowing[] | null> {
+    return this.borrowingsService.searchBorrowing(query);
   }
 
   @Get()
@@ -21,6 +26,11 @@ export class BorrowingsController {
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Borrowing> {
     return this.borrowingsService.findOne(id);
+  }
+
+  @Patch('return/:id')
+  statusUpdate(@Param('id') id: string, @Body() updateBorrowingDto: UpdateBorrowingDto): Promise<Borrowing> {
+    return this.borrowingsService.returnBook(id, updateBorrowingDto);
   }
 
   @Patch(':id')
