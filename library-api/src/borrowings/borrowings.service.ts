@@ -8,12 +8,13 @@ import { database } from 'firebase-admin';
 @Injectable()
 export class BorrowingsService {
 
-  private borrowingsCollection = db.collection('borrowing');
+  private borrowingsCollection = db.collection('borrowings');
   private usersCollection = db.collection('users');
   private booksCollection = db.collection('book');
 
   async create(createBorrowingDto: CreateBorrowingDto): Promise<Borrowing> {
     const docRef = await this.borrowingsCollection.add(createBorrowingDto);
+    await this.bookBorrowCount(typeof createBorrowingDto.bookRef === 'string' ? createBorrowingDto.bookRef : createBorrowingDto.bookRef.id);
     return { id: docRef.id, ...createBorrowingDto };
   }
 
@@ -129,6 +130,7 @@ export class BorrowingsService {
   }
 
   async returnBook(id: string, updateBorrowingDto: UpdateBorrowingDto): Promise<Borrowing> {
+
     const doc = this.borrowingsCollection.doc(id);
     const docSnap = await doc.get();
 
@@ -137,20 +139,9 @@ export class BorrowingsService {
     }
 
     const data = docSnap.data();
-
-    const bookRef = this.booksCollection.doc(data.bookRef);
-    const bookSnap = await bookRef.get();
-
-    if (!bookSnap.exists) {
-      throw new NotFoundException('book not found');
-    }
-
-    const bookData = bookSnap.data();
-
-    await bookRef.update({ available_copies: bookData.available_copies + 1 });
-
-    const dueDate = new Date(data.dueDate);
+    const dueDate = new Date(data.due_date);
     const returnDate = new Date(updateBorrowingDto.return_date || Date.now());
+
 
     if (returnDate.getTime() > dueDate.getTime()) {
       updateBorrowingDto.status = 'late';
@@ -158,8 +149,35 @@ export class BorrowingsService {
       updateBorrowingDto.status = 'returned';
     }
 
+    await this.bookReturnCount(data.bookRef);
+
     await doc.update(updateBorrowingDto);
     const updateDoc = await doc.get();
+
     return { id: updateDoc.id, ...updateDoc.data() } as Borrowing;
+  }
+
+  async bookReturnCount(id: string) {
+    const doc = this.booksCollection.doc(id);
+    const docSnap = await doc.get();
+
+    if (!docSnap.exists) {
+      throw new NotFoundException('book not found');
+    }
+
+    const data = docSnap.data();
+    await doc.update({ available_copies: data.available_copies + 1 });
+  }
+
+  async bookBorrowCount(id: string) {
+    const doc = this.booksCollection.doc(id);
+    const docSnap = await doc.get();
+
+    if (!docSnap.exists) {
+      throw new NotFoundException('book not found');
+    }
+
+    const data = docSnap.data();
+    await doc.update({ available_copies: data.available_copies - 1 });
   }
 }

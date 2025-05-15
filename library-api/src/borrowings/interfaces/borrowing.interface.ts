@@ -6,6 +6,6 @@ export interface Borrowing {
     bookRef: DocumentReference;
     borrow_date: Date;
     due_date: Date;
-    return_date?: Date; // Optional, in case the book is not yet returned
+    return_date?: Date;
     status: string;
 }

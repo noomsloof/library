@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsDate, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { DocumentReference } from 'firebase-admin/firestore';
 
 export class CreateBorrowingDto {
@@ -9,13 +10,17 @@ export class CreateBorrowingDto {
     @IsNotEmpty()
     bookRef: DocumentReference;
 
-    @IsString()
+    @IsDate()
+    @Type(() => Date)
     borrow_date: Date;
 
-    @IsString()
+    @IsDate()
+    @Type(() => Date)
     due_date: Date;
 
-    @IsString()
+    @IsOptional()
+    @IsDate()
+    @Type(() => Date)
     return_date: Date;
 
     @IsString()
