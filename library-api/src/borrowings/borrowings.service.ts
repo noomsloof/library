@@ -14,8 +14,14 @@ export class BorrowingsService {
 
   async create(createBorrowingDto: CreateBorrowingDto): Promise<Borrowing> {
     const docRef = await this.borrowingsCollection.add(createBorrowingDto);
-    await this.bookBorrowCount(typeof createBorrowingDto.bookRef === 'string' ? createBorrowingDto.bookRef : createBorrowingDto.bookRef.id);
-    return { id: docRef.id, ...createBorrowingDto };
+    const availableCheck = await this.checkBookAvailable(typeof createBorrowingDto.bookRef === 'string' ? createBorrowingDto.bookRef : createBorrowingDto.bookRef.id);
+    if (availableCheck == true) {
+      await this.bookBorrowCount(typeof createBorrowingDto.bookRef === 'string' ? createBorrowingDto.bookRef : createBorrowingDto.bookRef.id);
+      return { id: docRef.id, ...createBorrowingDto };
+    } else {
+      throw new NotFoundException('book not available');
+    }
+
   }
 
   async findAll(): Promise<Borrowing[]> {
@@ -179,5 +185,21 @@ export class BorrowingsService {
 
     const data = docSnap.data();
     await doc.update({ available_copies: data.available_copies - 1 });
+  }
+
+  async checkBookAvailable(id: string) {
+    const doc = this.booksCollection.doc(id);
+    const docSnap = await doc.get();
+
+    if (!docSnap.exists) {
+      throw new NotFoundException('book not found');
+    }
+
+    const data = docSnap.data();
+    if (data.available_copies > 0) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
